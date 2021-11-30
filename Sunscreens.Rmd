@@ -1,0 +1,127 @@
+---
+title: "Sunscreen Quality"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+# libraries
+library(packcircles)
+library(ggplot2)
+library(viridis)
+library(ggiraph)
+
+library(dplyr)
+library(hrbrthemes)
+#Pulling in our dataset
+Cosmetics <- read.csv("Documents/Cosmetics Project/Cosmetics/cosmetics.csv")
+```
+
+
+In the world of sunscreens, finding an effective, affordable, and safe suncreen can often be overwhelming. How does one differentiate between the different types of products? What is the difference between the types of ingredients used in sunscreens? Must I really spend a fortune to ensure I'm getting a quality product? 
+
+We were set on exploring whether price really does equate to better by diving into a dataset of luxury skin care products. We reviewed which products have recommended, safe, and environmentally friendly ingredients and which have the ingredients that are not-so-great.
+
+# Brands Included
+So who's included in this analysis? Glad you asked! Below is a list of brands that were included in this dataset, though not all brands necessarily had a product. 
+
+```{r, echo=FALSE}
+table(Cosmetics$Brand)
+BrandFreq <- as.data.frame(table(Cosmetics$Brand))
+
+# Add a column with the text you want to display for each bubble:
+#data$text <- paste("name: ",data$group, "\n", "value:", data$value, "\n", "You can add a story here!")
+
+# Generate the layout
+packing <- circleProgressiveLayout(BrandFreq$Freq, sizetype='area')
+BrandFreq <- cbind(BrandFreq, packing)
+dat.gg <- circleLayoutVertices(packing, npoints=50)
+
+# Make the plot with a few differences compared to the static version:
+p <- ggplot() + 
+  geom_polygon_interactive(data = dat.gg, aes(x, y, group = id, fill=id, tooltip = BrandFreq$Var1[id], data_id = id), colour = "black", alpha = 0.6) +
+  scale_fill_viridis() +
+  geom_text(data = BrandFreq, aes(x, y, label = gsub("Group_", "", Var1)), size=2, color="black") +
+  theme_void() + 
+  theme(legend.position="none", plot.margin=unit(c(0,0,0,0),"cm") ) + 
+  coord_equal()
+# Turn it interactive
+widg <- ggiraph(ggobj = p, width_svg = 7, height_svg = 7)
+widg
+
+# save the widget
+# library(htmlwidgets)
+# saveWidget(widg, file=paste0( getwd(), "/HtmlWidget/circular_packing_interactive.html"))
+```
+
+So, as you can see, this dataset defintiely has a vast amount of brands. However, we're only going to be interested in the sunscreen products so let's see how that samples looks. 
+
+# Ingredients !!! 
+Mineral Ingrediens that are noted to be grest for sun protection: 
+- Zinc Oxide
+- Titanium Dioxide
+
+Ingredients thatare not so great for sun protection, either due to their environmental consequences or lack of effectiveness: 
+-Oxybenzone (1,3)
+-Octinoxate (1,3)
+-Butylyparaben
+-Octocrylene (3)
+-Avobenzene (2)
+-Homosalate (3)
+-Octisalate (3)
+
+(1)https://www.healthline.com/health/beauty-skin-care/best-sunscreen-ingredients#oxybenzone
+(2) https://www.aad.org/public/everyday-care/sun-protection/sunscreen/understand-sunscreen-labels
+(3)https://www.ewg.org/sunscreen/report/executive-summary/
+```{r, echo=FALSE}
+Cosmetics$SunIngdt <- 0
+
+Cosmetics$SunIngdt<- ifelse(grepl("(Zinc Oxide |  Titanium Dioxide)",Cosmetics$Ingredients),"Mineral Based",
+                          ifelse(grepl("(Oxybenzone | Butylyparaben |Octinoxate |Octocrylene | Avobenzene | Homosalate | Octisalate)",Cosmetics$Ingredients),"Chemical Based",  0))
+
+table(Cosmetics$SunIngdt)
+```
+
+Of these products, 33 were labeled specifically as sun protectant. 
+
+```{r, echo=FALSE}
+Sunscreens <- subset(Cosmetics, SunIngdt != 0)
+
+table(Sunscreens$Label)
+```
+Among Chemical Products, the Price Distribution is as follows: 
+
+```{r, echo=FALSE}
+Chemical <- subset(Cosmetics, SunIngdt == "Chemical Based")
+summary(Chemical$Price)
+```
+Among Mineral Products, the Price Distribution is as follows: 
+```{r, echo=FALSE}
+Mineral <- subset(Cosmetics, SunIngdt == "Mineral Based")
+summary(Mineral$Price)
+
+
+# Build dataset with different distributions
+data <- data.frame(
+  type = c( rep("variable 1", 1000), rep("variable 2", 1000) ),
+  value = c( rnorm(1000), rnorm(1000, mean=4) )
+)
+
+# Represent it
+psun <- Sunscreens %>%
+    ggplot( aes(x=Price, fill=SunIngdt)) +
+    geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+    scale_fill_manual(values=c("#69b3a2", "#404080")) +
+    theme_ipsum() +
+    labs(fill="")
+
+print(psun)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
